@@ -1,0 +1,137 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+
+import warnings
+warnings.filterwarnings('ignore')
+
+#Chạy bộ dữ liệu
+customer_data = pd.read_csv('/content/Mall_Customers.csv')
+
+#in 5 hàng đầu tiên của bộ dữ liệu để kiểm tra
+customer_data.head()
+
+# xác định số lượng hàng và cột (Khi chưa xử lý)
+customer_data.shape
+
+# lấy thông tin từ bộ dữ liệu có sẵn (chưa xử lý)
+customer_data.info()
+
+# kiểm tra dữ liệu bị thiếu
+customer_data.isnull().sum()
+
+#Xử lý dữ liệu
+customer_data.dropna(axis=0,inplace=True)
+
+# lấy thông tin từ bộ dữ liệu có sẵn (Đã xử lý)
+customer_data.info()
+
+# kiểm tra dữ liệu bị thiếu
+customer_data.isnull().sum()
+
+data_1=customer_data[['Age' , 'Annual Income (k$)' , 'Spending Score (1-100)']]
+
+#Count: Số lượng quan sát trong tập dữ liệu
+#Mean (Trung bình): Giá trị trung bình của tất cả các giá trị trong tập dữ liệu
+#Std (Độ lệch chuẩn): Đo lường mức độ phân tán của các giá trị trong tập dữ liệu
+#Min (Giá trị nhỏ nhất): Giá trị nhỏ nhất trong tập dữ liệu
+#Q1,2,3: Tứ phân vị đầu tiên, giá trị giữa, và tứ phân vị thứ 3 là các giá trị mà tại đó, bộ dữ liệu chia thành các phần bằng nhau
+data_1.describe()
+
+#Tính ma trận tương quan giữa các cột trong data_1
+data_1.corr()
+#Optional_Vẽ biểu đồ tương quan để hiển thị kết quả ma trận tương quan đã tính
+# Tính ma trận tương quan
+correlation_matrix = data_1.corr()
+
+# Vẽ heatmap
+plt.figure(figsize=(8, 6))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
+plt.title('Correlation Matrix Heatmap')
+plt.show()
+
+
+#Vẽ ba biểu đồ histogram cho các biến 'Age', 'Annual Income (k$)', và 'Spending Score (1-100)'
+plt.figure(1 , figsize = (15 , 6))
+n = 0
+for x in ['Age' , 'Annual Income (k$)' , 'Spending Score (1-100)']:
+    n += 1
+    plt.subplot(1 , 3 , n)
+    plt.subplots_adjust(hspace =5, wspace = 0.5)
+    sns.histplot(customer_data[x] , bins = 40)
+    plt.title('Histplot of {}'.format(x))
+plt.show()
+
+
+# Tạo biểu đồ thể hiện mức độ tương quan giữa các thuộc tính
+plt.figure(figsize = (20,8))
+sns.heatmap(customer_data.corr(numeric_only = True), annot = True, cmap = plt.cm.Blues)
+plt.show()
+
+
+# Nhận và biến đổi giá trị 2 cột có chỉ số 3 và 4 (là cột 4: Annual Income và 5: Spending Score) trong dataframe và lưu vào ma trận X
+X = customer_data.iloc[:,[3,4]].values
+print(X)
+
+
+# Tìm mật độ đo hợp lý trong phân cụm dữ liệu từ số lượng cụm khác nhau
+# Within-Cluster-Sum-of-Squares" (WCSS) là tổng bình phương khoảng cách giữa mỗi điểm dữ liệu và centroid của cụm mà nó thuộc về.
+wcss = []
+
+for i in range(1,11):
+  kmeans = KMeans(n_clusters=i, init='k-means++', random_state=42)
+  kmeans.fit(X)
+
+  wcss.append(kmeans.inertia_)
+
+
+sns.set()
+plt.plot(range(1,11), wcss)
+plt.title('The Elbow Point Graph')
+plt.xlabel('Number of Clusters')
+plt.ylabel('WCSS')
+plt.show()
+
+
+kmeans = KMeans(n_clusters=5, init='k-means++', random_state=0)
+
+# return a label for each data point based on their cluster
+# trả về nhãn cho mỗi điểm dữ liệu dựa trên các cụm
+Y = kmeans.fit_predict(X)
+#print(customer_data['CustomerID'] ,Y)
+print(customer_data[:] ,Y)
+customer_data['Cluster_Label'] = Y
+customer_data.to_csv('/content/customer_data_with_clusters.csv', index=False)
+
+# Hiển thị DataFrame
+print(customer_data.head())
+
+# plotting all the clusters and their Centroids
+# Phác họa tất cả các cụm và các điểm dữ liệu được sử dụng để đại diện cho các cụm trong phân cụm (Centroids).
+
+plt.figure(figsize=(8,8))
+plt.scatter(X[Y==0,0], X[Y==0,1], s=50, c='green', label='Cluster 1')
+plt.scatter(X[Y==1,0], X[Y==1,1], s=50, c='red', label='Cluster 2')
+plt.scatter(X[Y==2,0], X[Y==2,1], s=50, c='yellow', label='Cluster 3')
+plt.scatter(X[Y==3,0], X[Y==3,1], s=50, c='violet', label='Cluster 4')
+plt.scatter(X[Y==4,0], X[Y==4,1], s=50, c='blue', label='Cluster 5')
+
+
+
+
+# plot the centroids
+# Phác họa các điểm
+plt.scatter(kmeans.cluster_centers_[:,0], kmeans.cluster_centers_[:,1], s=100, c='cyan', label='Centroids')
+
+plt.title('Customer Groups')
+plt.xlabel('Annual Income')
+plt.ylabel('Spending Score')
+plt.show()
+
+Việc tính và hiển thị ma trận tương quan trong dữ liệu là một bước quan trọng trong quá trình phân tích dữ liệu và chuẩn bị cho việc áp dụng các thuật toán máy học như K-means clustering.
+Ma trận tương quan giữa các cột trong data_1 cung cấp thông tin về mức độ liên quan tuyến tính giữa các đặc trưng. Trong trường hợp của K-means clustering, việc này giúp định rõ sự tương quan giữa các thuộc tính, có thể tạo ra nhóm khách hàng có các đặc tính tương tự.
+ tính và hiển thị ma trận tương quan trên biểu đồ heatmap để trực quan hóa mức độ tương quan giữa các cặp thuộc tính
